@@ -17,15 +17,16 @@ using boost::numeric::odeint::runge_kutta_fehlberg78;
 
 class SchroedingerIntegrator {
  public:
-  SchroedingerIntegrator(double energy, double reduced_mass, int L, std::function<double(double)> potential, double rmin, size_t tracked_index)
-  : m_energy{energy}, m_reduced_mass{reduced_mass}, m_L{L}, m_potential{std::move(potential)}, m_last_position{rmin}, m_tracked_index{tracked_index}
+  SchroedingerIntegrator (double energy, double reduced_mass, int L, std::function<double (double)> potential, double rmin, size_t tracked_index)
+      : m_energy{energy}, m_reduced_mass{reduced_mass}, m_L{L}, m_potential{std::move (potential)}, m_last_position{
+      rmin}, m_tracked_index{tracked_index}
   {
     /*
      * Initialize here m_last_state at rmin.
      */
   }
 
-  void do_integrate_range(double range, double stepsize, double abs_error, double rel_error, bool do_track)
+  void do_integrate_range (double range, double stepsize, double abs_error, double rel_error, bool do_track)
   {
     /*
      * range: Integrate from m_last_position to m_last_position+range.
@@ -36,17 +37,18 @@ class SchroedingerIntegrator {
      */
     if (do_track)
       integrate_const (make_controlled<runge_kutta_fehlberg78<std::vector<double>>> (abs_error, rel_error), m_state_velocity, m_last_state, m_last_position,
-        m_last_position + range, stepsize, m_tracker);
+                       m_last_position + range, stepsize, m_tracker);
     else
-    integrate_const (make_controlled<runge_kutta_fehlberg78<std::vector<double>>> (abs_error, rel_error), m_state_velocity, m_last_state, m_last_position,
-        m_last_position + range, range, m_tracker);
-    m_last_position = m_positions.back();
+      integrate_const (make_controlled<runge_kutta_fehlberg78<std::vector<double>>> (abs_error, rel_error), m_state_velocity, m_last_state, m_last_position,
+                       m_last_position + range, range, m_tracker);
+    m_last_position = m_positions.back ();
   }
 
-  double get_last_point() { return m_last_state[m_tracked_index]; }
+  double get_last_point ()
+  { return m_last_state[m_tracked_index]; }
 
  private:
-  class TrajectoryTracker{
+  class TrajectoryTracker {
    public:
     std::vector<double> &m_positions;
     std::vector<double> &m_trajectory;
@@ -61,9 +63,11 @@ class SchroedingerIntegrator {
       /*
        * Include routine to save relevant information in positions and trajectory vectors here.
        */
+      m_positions.push_back (pos);
+      m_trajectory.push_back (state[m_tracked_index]);
     }
   };
-  class StateVelocity{
+  class StateVelocity {
    public:
     double &m_energy;
     double &m_reduced_mass;
@@ -79,13 +83,18 @@ class SchroedingerIntegrator {
       /*
        * state can be e.g. (psi, psi', psi'').
        * ODE_vec are the ODEs for psi, psi', psi'', which will be defined here.
+       * (Here, we only have psi and psi''.)
        */
+      ODE_vec[0] = state[1];
+      ODE_vec[1] =
+          ((m_potential (pos) - m_energy) * 2.0 * m_reduced_mass + ((double) m_L * ((double) m_L + 1.0)) / (pos * pos))
+          * state[0];
     }
   };
   double m_energy{};
   double m_reduced_mass{}; // Reduced mass in the kinetic operator.
   int m_L{}; // Angular momentum.
-  std::function<double(double)> m_potential{}; // Functor with operator() giving the value of V(r) at r.
+  std::function<double (double)> m_potential{}; // Functor with operator() giving the value of V(r) at r.
   double m_last_position{}; // Last r.
   size_t m_tracked_index{}; // The index of the quantity relevant for boundary conditions.
   std::vector<double> m_last_state{}; // Last state of wave function vector (psi, psi', psi'').
